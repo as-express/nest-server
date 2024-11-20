@@ -1,0 +1,31 @@
+name: CI/CD Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up SSH key
+      run: |
+        # Создаём директорию .ssh, если её нет
+        mkdir -p ~/.ssh
+        # Записываем приватный ключ в файл
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        # Убираем предупреждения о неизвестных хостах (чтобы не зацикливаться на запросах)
+        ssh-keyscan -H 176.124.212.173 >> ~/.ssh/known_hosts
+
+    - name: Deploy to server
+      run: |
+        # Выполняем команду на сервере через SSH
+        ssh -o StrictHostKeyChecking=no root@176.124.212.173 "cd /home/deploy/project && git pull && docker-compose up -d --build"
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
